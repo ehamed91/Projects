@@ -1,0 +1,49 @@
+import requests
+import os
+import time
+from bs4 import BeautifulSoup
+import docx
+
+urls = [    "example_url",    "example_url_2",    "example_url_3"]
+
+headers = {
+    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/89.0.4389.82 Safari/537.36"
+}
+
+# Create a new Word document
+document = docx.Document()
+
+for i, url in enumerate(urls):
+    article_body = None
+
+    response = requests.get(url, headers=headers)
+
+    if response.status_code == 200:
+        soup = BeautifulSoup(response.text, 'html.parser')
+
+        article_body = soup.find("div", {"class": "article-body"})
+        if not article_body:
+            article_body = soup.find("div", {"class": "content-body"})
+            if not article_body:
+                article_body = soup.find("div", {"class": "entry-content"})
+                if not article_body:
+                    article_body = soup.find("div", {"class": "post-full-content"})
+                    if not article_body:
+                        article_body = soup.find("article")
+
+        if article_body:
+            article_text = article_body.text
+            domain_name = url.split("//")[-1].split("/")[0]
+            header = f"Article {i+1}"
+            # Add the header as a paragraph to the document
+            document.add_heading(header, level=1)
+            # Add the content as a paragraph to the document
+            document.add_paragraph(article_text)
+            print(f"The article from {domain_name} was successfully added to the document")
+            time.sleep(2)
+        else:
+            domain_name = url.split("//")[-1].split("/")[0]
+            print(f"Failed to retrieve the article from {domain_name}")
+
+# Save the document to a file
+document.save('articles.docx')
